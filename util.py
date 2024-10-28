@@ -96,5 +96,5 @@ async def default_callback_handler(update: Update,
     await send_html(update, context, f'You have pressed button with {query} callback')
 
 
-class Dialog:
-    pass
+# class Dialog:
+#     pass

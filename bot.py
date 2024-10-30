@@ -6,14 +6,19 @@ from telegram.warnings import PTBUserWarning
 from credentials import ChatGPT_TOKEN, Telegram_TOKEN
 from gpt import ChatGptService
 from util import load_message, load_prompt, send_text_buttons, send_text, \
-    send_image, show_main_menu, default_callback_handler
+    send_image, show_main_menu
 from warnings import filterwarnings
 
 filterwarnings(action="ignore", message=r".*CallbackQueryHandler", category=PTBUserWarning)
 
-MAIN, GPT, TALK, TRANSLATE, QUIZ, COMPANION = range(6)
+MAIN, GPT, TALK, QUIZ, TRANSLATE, COMPANION = range(6)
 
+# Вывод главного меню
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка команды /start
+    Вывод основного меню бота
+    """
     text = load_message('main')
     await send_image(update, context, 'main')
     await send_text(update, context, text)
@@ -24,14 +29,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'talk': 'Поговорить с известной личностью 👤',
         'quiz': 'Поучаствовать в квизе ❓',
         'translate': 'Перевести текст 🇬🇧',
-        'companion': 'Побеседовать с чатом GPT на выбранном языке 🤝'
+        'companion': 'Побеседовать с жителем одной из стран 🤝'
         # Добавить команду в меню можно так:
         # 'command': 'button text'
 
     })
     return MAIN
 
+# Узнать случайный интересный факт
 async def random(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка команды /random
+    Запрос случайного интересного факта от ChatGPT
+    """
     prompt = load_prompt('random')
     message = load_message('random')
 
@@ -42,7 +52,12 @@ async def random(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await message.edit_text(answer)
     return MAIN
 
+# Задать вопрос чату GPT
 async def gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка команды /gpt
+    Инициализация диалога с ChatGPT
+    """
     prompt = load_prompt('gpt')
     message = load_message('gpt')
     chat_gpt.set_prompt(prompt)
@@ -51,13 +66,21 @@ async def gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return GPT
 
 async def gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка сообщений от пользователя в режиме диалога с ChatGPT
+    """
     text = update.message.text
     message = await send_text(update, context, "Думаю над вопросом...")
     answer = await chat_gpt.add_message(text)
     await message.edit_text(answer)
     return GPT
 
+# Поговорить с известной личностью
 async def talk(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка команды /talk
+    Инициализация диалога с ChatGPT от имени известной личности
+    """
     message = load_message('talk')
     await send_image(update, context, 'talk')
     await send_text_buttons(update, context, message, {
@@ -70,6 +93,9 @@ async def talk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return TALK
 
 async def talk_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка нажатия кнопки для выбора одного из известных лиц
+    """
     await update.callback_query.answer()
     cb = update.callback_query.data
 
@@ -81,12 +107,20 @@ async def talk_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return TALK
 
 async def talk_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка сообщений от пользователя в режиме диалога с известной личностью
+    """
     text = update.message.text
     answer = await chat_gpt.add_message(text)
     await send_text(update, context, answer)
     return TALK
 
+# Поучаствовать в квизе
 async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка команды /quiz
+    Инициализация викторины от ChatGPT
+    """
     context.user_data["quiz_count"] = 0
     context.user_data["quiz_score"] = 0
     message = load_message('quiz')
@@ -103,6 +137,9 @@ async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return QUIZ
 
 async def quiz_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка нажатия кнопки для выбора темы викторины
+    """
     await update.callback_query.answer()
     cb = update.callback_query.data
     if cb == 'quiz_more':
@@ -116,6 +153,9 @@ async def quiz_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return QUIZ
 
 async def quiz_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка сообщений от пользователя в режиме викторины
+    """
     text = update.message.text
     answer = await chat_gpt.add_message(text)
     if answer == 'Правильно!':
@@ -126,21 +166,29 @@ async def quiz_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     })
     return QUIZ
 
+# Перевести текст
 async def translate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка команды /translate
+    Инициализация умного переводчика текста
+    """
     prompt = load_prompt('translate')
     message = load_message('translate')
     chat_gpt.set_prompt(prompt)
     await send_image(update, context, 'translate')
     await send_text_buttons(update, context, message, {
         'trans_ru': 'Русский',
-        'trans_en': 'Английский',
-        'trans_ge': 'Немецкий',
-        'trans_fr': 'Французский',
-        'trans_sp': 'Испанский'
+        'trans_en': 'English',
+        'trans_ge': 'Deutsch',
+        'trans_fr': 'Français',
+        'trans_sp': 'Español'
     })
     return TRANSLATE
 
 async def translate_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка нажатия кнопки для выбора языка перевода
+    """
     await update.callback_query.answer()
     await send_text(update, context, 'Что нужно перевести?')
     cb = update.callback_query.data
@@ -148,27 +196,38 @@ async def translate_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return TRANSLATE
 
 async def translate_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка сообщений от пользователя в режиме переводчика
+    """
     text = update.message.text
     message = await send_text(update, context, "Перевожу текст...")
     answer = await chat_gpt.add_message(text)
     await message.edit_text(answer)
     return TRANSLATE
 
+# Побеседовать с жителем одной из стран
 async def companion(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка команды /companion
+    Инициализация диалога с иностранным собеседником
+    """
     prompt = load_prompt('companion')
     message = load_message('companion')
     chat_gpt.set_prompt(prompt)
     await send_image(update, context, 'companion')
     await send_text_buttons(update, context, message, {
-        'comp_ru': 'Русский',
-        'comp_en': 'Английский',
-        'comp_ge': 'Немецкий',
-        'comp_fr': 'Французский',
-        'comp_sp': 'Испанский'
+        'comp_ru': 'Россия',
+        'comp_us': 'USA',
+        'comp_uk': 'United Kingdom',
+        'comp_ge': 'Deutschland',
+        'comp_sp': 'Español'
     })
     return COMPANION
 
 async def companion_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка нажатия кнопки для выбора страны собеседника
+    """
     await update.callback_query.answer()
     cb = update.callback_query.data
     answer = await chat_gpt.add_message(cb)
@@ -176,15 +235,22 @@ async def companion_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return COMPANION
 
 async def companion_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработка сообщений от пользователя в режиме диалога с иностранным собеседником
+    """
     text = update.message.text
     answer = await chat_gpt.add_message(text)
     await send_text(update, context, answer)
     return COMPANION
 
-async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Эхо-бот
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик сообщений, повторяющий сообщение от пользователя
+    Используется, если не выбран другой режим диалога с ботом
+    """
     await send_text(update, context, update.message.text)
-
-# Переменные можно определить, как атрибуты dialog
+    return MAIN
 
 chat_gpt = ChatGptService(ChatGPT_TOKEN)
 app = ApplicationBuilder().token(Telegram_TOKEN).build()
@@ -193,75 +259,37 @@ conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
         MAIN: [
-            CommandHandler("start", start),
-            CommandHandler('random', random),
-            CommandHandler('gpt', gpt),
-            CommandHandler('talk', talk),
-            CommandHandler('quiz', quiz),
-            CommandHandler('translate', translate),
-            CommandHandler('companion', companion),
-            MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler)
+            MessageHandler(filters.TEXT & ~filters.COMMAND, echo)
         ],
         GPT: [
-            CommandHandler("start", start),
-            CommandHandler('random', random),
-            CommandHandler('gpt', gpt),
-            CommandHandler('talk', talk),
-            CommandHandler('quiz', quiz),
-            CommandHandler('translate', translate),
-            CommandHandler('companion', companion),
             MessageHandler(filters.TEXT & ~filters.COMMAND, gpt_dialog)
         ],
         TALK: [
-            CommandHandler("start", start),
-            CommandHandler('random', random),
-            CommandHandler('gpt', gpt),
-            CommandHandler('talk', talk),
-            CommandHandler('quiz', quiz),
-            CommandHandler('translate', translate),
-            CommandHandler('companion', companion),
             CallbackQueryHandler(talk_button),
-            CallbackQueryHandler(default_callback_handler),
             MessageHandler(filters.TEXT & ~filters.COMMAND, talk_dialog)
         ],
         QUIZ: [
-            CommandHandler("start", start),
-            CommandHandler('random', random),
-            CommandHandler('gpt', gpt),
-            CommandHandler('talk', talk),
-            CommandHandler('quiz', quiz),
-            CommandHandler('translate', translate),
-            CommandHandler('companion', companion),
             CallbackQueryHandler(quiz_button),
-            CallbackQueryHandler(default_callback_handler),
             MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_dialog)
         ],
         TRANSLATE: [
-            CommandHandler("start", start),
-            CommandHandler('random', random),
-            CommandHandler('gpt', gpt),
-            CommandHandler('talk', talk),
-            CommandHandler('quiz', quiz),
-            CommandHandler('translate', translate),
-            CommandHandler('companion', companion),
             CallbackQueryHandler(translate_button),
-            CallbackQueryHandler(default_callback_handler),
             MessageHandler(filters.TEXT & ~filters.COMMAND, translate_dialog)
         ],
         COMPANION: [
-            CommandHandler("start", start),
-            CommandHandler('random', random),
-            CommandHandler('gpt', gpt),
-            CommandHandler('talk', talk),
-            CommandHandler('quiz', quiz),
-            CommandHandler('translate', translate),
-            CommandHandler('companion', companion),
             CallbackQueryHandler(companion_button),
-            CallbackQueryHandler(default_callback_handler),
             MessageHandler(filters.TEXT & ~filters.COMMAND, companion_dialog)
         ],
     },
-    fallbacks=[],
+    fallbacks=[
+        CommandHandler("start", start),
+        CommandHandler('random', random),
+        CommandHandler('gpt', gpt),
+        CommandHandler('talk', talk),
+        CommandHandler('quiz', quiz),
+        CommandHandler('translate', translate),
+        CommandHandler('companion', companion)
+    ],
 )
 
 app.add_handler(conv_handler)

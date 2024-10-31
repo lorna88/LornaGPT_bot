@@ -220,7 +220,7 @@ async def companion(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'comp_us': 'USA',
         'comp_uk': 'United Kingdom',
         'comp_ge': 'Deutschland',
-        'comp_sp': 'Español'
+        'comp_sp': 'España'
     })
     return COMPANION
 
@@ -255,8 +255,17 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 chat_gpt = ChatGptService(ChatGPT_TOKEN)
 app = ApplicationBuilder().token(Telegram_TOKEN).build()
 
+command_handlers = [
+        CommandHandler("start", start),
+        CommandHandler('random', random),
+        CommandHandler('gpt', gpt),
+        CommandHandler('talk', talk),
+        CommandHandler('quiz', quiz),
+        CommandHandler('translate', translate),
+        CommandHandler('companion', companion)
+    ]
 conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("start", start)],
+    entry_points=command_handlers,
     states={
         MAIN: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, echo)
@@ -281,15 +290,7 @@ conv_handler = ConversationHandler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, companion_dialog)
         ],
     },
-    fallbacks=[
-        CommandHandler("start", start),
-        CommandHandler('random', random),
-        CommandHandler('gpt', gpt),
-        CommandHandler('talk', talk),
-        CommandHandler('quiz', quiz),
-        CommandHandler('translate', translate),
-        CommandHandler('companion', companion)
-    ],
+    fallbacks=command_handlers,
 )
 
 app.add_handler(conv_handler)

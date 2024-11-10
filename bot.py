@@ -1,3 +1,5 @@
+from warnings import filterwarnings
+
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, \
     CallbackQueryHandler, CommandHandler, ContextTypes, ConversationHandler
@@ -7,11 +9,12 @@ from credentials import ChatGPT_TOKEN, Telegram_TOKEN
 from gpt import ChatGptService
 from util import load_message, load_prompt, send_text_buttons, send_text, \
     send_image, show_main_menu
-from warnings import filterwarnings
 
 filterwarnings(action="ignore", message=r".*CallbackQueryHandler", category=PTBUserWarning)
 
-MAIN, GPT, TALK, QUIZ, TRANSLATE, COMPANION = range(6)
+MAIN, GPT, TALK, QUIZ, TRANSLATE, COMPANION, TALK_WAIT, QUIZ_WAIT, TRANSLATE_WAIT, \
+    COMPANION_WAIT = range(10)
+
 
 # Вывод главного меню
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -30,11 +33,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'quiz': 'Поучаствовать в квизе ❓',
         'translate': 'Перевести текст 🇬🇧',
         'companion': 'Побеседовать с жителем одной из стран 🤝'
-        # Добавить команду в меню можно так:
-        # 'command': 'button text'
-
     })
     return MAIN
+
 
 # Узнать случайный интересный факт
 async def random(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -52,6 +53,7 @@ async def random(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await message.edit_text(answer)
     return MAIN
 
+
 # Задать вопрос чату GPT
 async def gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -65,6 +67,7 @@ async def gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_text(update, context, message)
     return GPT
 
+
 async def gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Обработка сообщений от пользователя в режиме диалога с ChatGPT
@@ -74,6 +77,7 @@ async def gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = await chat_gpt.add_message(text)
     await message.edit_text(answer)
     return GPT
+
 
 # Поговорить с известной личностью
 async def talk(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -90,7 +94,23 @@ async def talk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'talk_nietzsche': 'Фридрих Ницше',
         'talk_hawking': 'Стивен Хокинг'
     })
-    return TALK
+    return TALK_WAIT
+
+
+async def talk_wait(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Повторный запрос нажатия на кнопку
+    """
+    message = 'Пожалуйста, выберите известную личность:'
+    await send_text_buttons(update, context, message, {
+        'talk_cobain': 'Курт Кобейн',
+        'talk_queen': 'Елизавета II',
+        'talk_tolkien': 'Джон Толкиен',
+        'talk_nietzsche': 'Фридрих Ницше',
+        'talk_hawking': 'Стивен Хокинг'
+    })
+    return TALK_WAIT
+
 
 async def talk_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -106,6 +126,7 @@ async def talk_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_text(update, context, 'Задай мне вопрос')
     return TALK
 
+
 async def talk_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Обработка сообщений от пользователя в режиме диалога с известной личностью
@@ -114,6 +135,7 @@ async def talk_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = await chat_gpt.add_message(text)
     await send_text(update, context, answer)
     return TALK
+
 
 # Поучаствовать в квизе
 async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -134,7 +156,21 @@ async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'quiz_math': 'Теории алгоритмов, множеств и матанализа',
         'quiz_biology': 'Биология'
     })
-    return QUIZ
+    return QUIZ_WAIT
+
+
+async def quiz_wait(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Повторный запрос нажатия на кнопку
+    """
+    message = 'Пожалуйста, выбери тему для квиза:'
+    await send_text_buttons(update, context, message, {
+        'quiz_prog': 'Программирование на Python',
+        'quiz_math': 'Теории алгоритмов, множеств и матанализа',
+        'quiz_biology': 'Биология'
+    })
+    return QUIZ_WAIT
+
 
 async def quiz_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -152,6 +188,7 @@ async def quiz_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_text(update, context, answer)
     return QUIZ
 
+
 async def quiz_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Обработка сообщений от пользователя в режиме викторины
@@ -161,10 +198,12 @@ async def quiz_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if answer == 'Правильно!':
         context.user_data["quiz_score"] += 1
     await send_text(update, context, answer)
-    await send_text_buttons(update, context, f'Количество правильных ответов: {context.user_data["quiz_score"]} из {context.user_data["quiz_count"]}', {
-        'quiz_more': 'Следующий вопрос'
-    })
+    await send_text_buttons(update, context, f'Количество правильных ответов:'\
+                                             f' {context.user_data["quiz_score"]} из'\
+                                             f' {context.user_data["quiz_count"]}', \
+                            {'quiz_more': 'Следующий вопрос'})
     return QUIZ
+
 
 # Перевести текст
 async def translate(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -183,7 +222,23 @@ async def translate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'trans_fr': 'Français',
         'trans_sp': 'Español'
     })
-    return TRANSLATE
+    return TRANSLATE_WAIT
+
+
+async def translate_wait(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Повторный запрос нажатия на кнопку
+    """
+    message = 'Пожалуйста, укажите, на какой язык нужно будет переводить:'
+    await send_text_buttons(update, context, message, {
+        'trans_ru': 'Русский',
+        'trans_en': 'English',
+        'trans_ge': 'Deutsch',
+        'trans_fr': 'Français',
+        'trans_sp': 'Español'
+    })
+    return TRANSLATE_WAIT
+
 
 async def translate_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -195,6 +250,7 @@ async def translate_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await chat_gpt.add_message(cb)
     return TRANSLATE
 
+
 async def translate_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Обработка сообщений от пользователя в режиме переводчика
@@ -204,6 +260,7 @@ async def translate_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = await chat_gpt.add_message(text)
     await message.edit_text(answer)
     return TRANSLATE
+
 
 # Побеседовать с жителем одной из стран
 async def companion(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -222,7 +279,23 @@ async def companion(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'comp_ge': 'Deutschland',
         'comp_sp': 'España'
     })
-    return COMPANION
+    return COMPANION_WAIT
+
+
+async def companion_wait(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Повторный запрос нажатия на кнопку
+    """
+    message = 'Пожалуйста, выбери страну собеседника:'
+    await send_text_buttons(update, context, message, {
+        'comp_ru': 'Россия',
+        'comp_us': 'USA',
+        'comp_uk': 'United Kingdom',
+        'comp_ge': 'Deutschland',
+        'comp_sp': 'España'
+    })
+    return COMPANION_WAIT
+
 
 async def companion_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -234,6 +307,7 @@ async def companion_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_text(update, context, answer)
     return COMPANION
 
+
 async def companion_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Обработка сообщений от пользователя в режиме диалога с иностранным собеседником
@@ -242,6 +316,7 @@ async def companion_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = await chat_gpt.add_message(text)
     await send_text(update, context, answer)
     return COMPANION
+
 
 # Эхо-бот
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -273,20 +348,33 @@ conv_handler = ConversationHandler(
         GPT: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, gpt_dialog)
         ],
-        TALK: [
+        TALK_WAIT: [
             CallbackQueryHandler(talk_button),
+            MessageHandler(filters.TEXT & ~filters.COMMAND, talk_wait)
+        ],
+        TALK: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, talk_dialog)
+        ],
+        QUIZ_WAIT: [
+            CallbackQueryHandler(quiz_button),
+            MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_wait)
         ],
         QUIZ: [
             CallbackQueryHandler(quiz_button),
             MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_dialog)
         ],
-        TRANSLATE: [
+        TRANSLATE_WAIT: [
             CallbackQueryHandler(translate_button),
+            MessageHandler(filters.TEXT & ~filters.COMMAND, translate_wait)
+        ],
+        TRANSLATE: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, translate_dialog)
         ],
-        COMPANION: [
+        COMPANION_WAIT: [
             CallbackQueryHandler(companion_button),
+            MessageHandler(filters.TEXT & ~filters.COMMAND, companion_wait)
+        ],
+        COMPANION: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, companion_dialog)
         ],
     },

@@ -1,3 +1,4 @@
+import os
 from warnings import filterwarnings
 
 from telegram import Update
@@ -5,7 +6,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, filters, \
     CallbackQueryHandler, CommandHandler, ContextTypes, ConversationHandler
 from telegram.warnings import PTBUserWarning
 
-from credentials import ChatGPT_TOKEN, Telegram_TOKEN
+# from credentials import ChatGPT_TOKEN, Telegram_TOKEN
 from gpt import ChatGptService
 from util import load_message, load_prompt, send_text_buttons, send_text, \
     send_image, show_main_menu
@@ -15,6 +16,14 @@ filterwarnings(action="ignore", message=r".*CallbackQueryHandler", category=PTBU
 MAIN, GPT, TALK, QUIZ, TRANSLATE, COMPANION, TALK_WAIT, QUIZ_WAIT, TRANSLATE_WAIT, \
     COMPANION_WAIT = range(10)
 
+# Получаем токены из переменных окружения
+ChatGPT_TOKEN = os.environ.get("ChatGPT_TOKEN")
+Telegram_TOKEN = os.environ.get("Telegram_TOKEN")
+
+if ChatGPT_TOKEN is None:
+    raise KeyError("Ошибка: Токен бота не найден в переменных окружения.")
+if Telegram_TOKEN is None:
+    raise KeyError("Ошибка: Токен Telegram не найден в переменных окружения.")
 
 # Вывод главного меню
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
